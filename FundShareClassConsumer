@@ -1,0 +1,113 @@
+using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Avro.Generic;
+using Bnpp.Am.Eima.AD.BusinessModels.DTOs;
+
+public class FundShareClassConsumer : BackgroundService
+{
+    private readonly ILogger<FundShareClassConsumer> _logger;
+    private readonly IConfiguration _config;
+
+    public FundShareClassConsumer(ILogger<FundShareClassConsumer> logger, IConfiguration config)
+    {
+        _logger = logger;
+        _config = config;
+    }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        return Task.Run(() =>
+        {
+            var consumerConfig = new ConsumerConfig
+            {
+                BootstrapServers = _config["Kafka:BootstrapServers"],
+                GroupId = _config["Kafka:ConsumerGroup"],
+                AutoOffsetReset = AutoOffsetReset.Earliest
+            };
+
+            var schemaConfig = new SchemaRegistryConfig
+            {
+                Url = _config["Kafka:SchemaRegistry"]
+            };
+
+            using var schemaRegistry = new CachedSchemaRegistryClient(schemaConfig);
+
+            using var consumer = new ConsumerBuilder<string, GenericRecord>(consumerConfig)
+                .SetValueDeserializer(new AvroDeserializer<GenericRecord>(schemaRegistry).AsSyncOverAsync())
+                .Build();
+
+            consumer.Subscribe(_config["Kafka:Topic"]);
+
+            _logger.LogInformation("✅ Kafka Consumer started (topic = {Topic})", _config["Kafka:Topic"]);
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var result = consumer.Consume(stoppingToken);
+
+                GenericRecord record = result.Message.Value;
+
+                FundShareClassMessageDto dto = MapToDto(record);
+
+                _logger.LogInformation("📥 Received message ShareClass={ISIN}, Fund={FundCode}",
+                    dto.ShareClass.ISIN, dto.Fund.Code);
+
+                // TODO: save in DB / send to another service
+            }
+        });
+    }
+
+    private FundShareClassMessageDto MapToDto(GenericRecord record)
+    {
+        var lookup     = (GenericRecord)record["lookup"];
+        var fund       = (GenericRecord)record["fund"];
+        var shareClass = (GenericRecord)record["shareClass"];
+        var fundNav    = record["fundNav"] as GenericRecord;
+        var position   = record["position"] as GenericRecord;
+
+        return new FundShareClassMessageDto
+        {
+            EventId = Guid.Parse(record["eventId"].ToString()),
+            EventTs = DateTimeOffset.FromUnixTimeMilliseconds((long)record["eventTs"]).UtcDateTime,
+
+            Lookup = new LookupDto
+            {
+                LookupName = lookup["lookupName"].ToString(),
+                FileName = lookup["fileName"]?.ToString(),
+                BusinessLine = lookup["businessLine"]?.ToString()
+            },
+
+            Fund = new FundRefDto
+            {
+                Code = fund["code"].ToString(),
+                Description = fund["description"]?.ToString(),
+                Currency = fund["currency"]?.ToString(),
+                CafCode = fund["cafCode"]?.ToString()
+            },
+
+            FundNav = fundNav == null ? null : new FundNavDto
+            {
+                NavDate = DateTimeOffset.FromUnixTimeMilliseconds((long)fundNav["navDate"]).UtcDateTime,
+                NavInFundCurrency = (double?)fundNav["navInFundCurrency"],
+                FundNavInShareCcy = (double?)fundNav["fundNavInShareCcy"],
+                SharesOut = (double?)fundNav["sharesOut"],
+            },
+
+            ShareClass = new ShareClassDto
+            {
+                ISIN = shareClass["isin"].ToString(),
+                Name = shareClass["name"]?.ToString(),
+                Currency = shareClass["currency"]?.ToString()
+            },
+
+            Position = position == null ? null : new PositionDto
+            {
+                Equity = (double?)position["equity"],
+                Bond = (double?)position["bond"],
+                Accrued = (double?)position["accrued"]
+            }
+        };
+    }
+}
