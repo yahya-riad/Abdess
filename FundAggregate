@@ -1,0 +1,119 @@
+{
+  "type": "record",
+  "name": "FundAggregate",
+  "namespace": "bnpp.am.eima.ad",
+  "doc": "Aggregate Kafka message: Fund with its LookupFunds, ShareClasses and related NAV/Position.",
+  "fields": [
+    { "name": "eventId", "type": { "type": "string", "logicalType": "uuid" }, "doc": "Id technique du message (trace/correlation)" },
+    { "name": "eventTime", "type": { "type": "long", "logicalType": "timestamp-millis" }, "doc": "Horodatage de production du message" },
+    { "name": "fund", "type": "bnpp.am.eima.ad.Fund" },
+    { "name": "lookupFunds", "type": { "type": "array", "items": "bnpp.am.eima.ad.LookupFundAgg" } }
+  ],
+
+  "types": [
+
+    {
+      "type": "record",
+      "name": "Fund",
+      "fields": [
+        { "name": "id",         "type": { "type": "string", "logicalType": "uuid" } },
+        { "name": "code",       "type": "string" },
+        { "name": "description","type": ["null","string"], "default": null },
+        { "name": "currency",   "type": "string" },
+        { "name": "cafCode",    "type": ["null","string"], "default": null }
+      ]
+    },
+
+    {
+      "type": "record",
+      "name": "LookupFundAgg",
+      "doc": "LookupFund + agrégats enfants (ShareClasses + Position).",
+      "fields": [
+        { "name": "lookupFund",  "type": "bnpp.am.eima.ad.LookupFund" },
+        { "name": "shareClasses","type": { "type": "array", "items": "bnpp.am.eima.ad.ShareClassAgg" } },
+        { "name": "position",    "type": ["null","bnpp.am.eima.ad.Position"], "default": null }
+      ]
+    },
+
+    {
+      "type": "record",
+      "name": "LookupFund",
+      "fields": [
+        { "name": "id",        "type": { "type": "string", "logicalType": "uuid" } },
+        { "name": "idFund",    "type": { "type": "string", "logicalType": "uuid" } },
+        { "name": "idLookup",  "type": { "type": "string", "logicalType": "uuid" } }
+      ]
+    },
+
+    {
+      "type": "record",
+      "name": "ShareClassAgg",
+      "doc": "ShareClass + dernier NAV connu.",
+      "fields": [
+        { "name": "shareClass", "type": "bnpp.am.eima.ad.ShareClass" },
+        { "name": "nav",        "type": ["null","bnpp.am.eima.ad.Nav"], "default": null }
+      ]
+    },
+
+    {
+      "type": "record",
+      "name": "ShareClass",
+      "fields": [
+        { "name": "id",           "type": { "type": "string", "logicalType": "uuid" } },
+        { "name": "isin",         "type": "string" },
+        { "name": "name",         "type": "string" },
+        { "name": "currency",     "type": "string" },
+        { "name": "idLookupFund", "type": { "type": "string", "logicalType": "uuid" } }
+      ]
+    },
+
+    {
+      "type": "record",
+      "name": "Nav",
+      "fields": [
+        { "name": "id",                    "type": { "type": "string", "logicalType": "uuid" } },
+        { "name": "navToday",              "type": ["null","string"], "default": null },
+        { "name": "navYesterday",          "type": ["null","string"], "default": null },
+        { "name": "navDate",               "type": ["null",{ "type":"long","logicalType":"timestamp-millis"}], "default": null },
+        { "name": "navPerShareClass",      "type": ["null","double"], "default": null },
+        { "name": "fundNavInShareCcy",     "type": ["null","double"], "default": null },
+        { "name": "navPublished",          "type": ["null","double"], "default": null },
+        { "name": "totalActive",           "type": ["null","double"], "default": null },
+        { "name": "navTodayInFundCurrency","type": ["null","double"], "default": null },
+        { "name": "sharesOut",             "type": ["null","double"], "default": null },
+        { "name": "pnlInFundCcy",          "type": ["null","double"], "default": null },
+        { "name": "navInFundCurrency",     "type": ["null","double"], "default": null },
+        { "name": "idShareClass",          "type": ["null", { "type": "string", "logicalType": "uuid" }], "default": null }
+      ]
+    },
+
+    {
+      "type": "record",
+      "name": "Position",
+      "fields": [
+        { "name": "id",                 "type": { "type": "string", "logicalType": "uuid" } },
+        { "name": "equity",             "type": ["null","double"], "default": null },
+        { "name": "bond",               "type": ["null","double"], "default": null },
+        { "name": "tcn",                "type": ["null","double"], "default": null },
+        { "name": "coupon",             "type": ["null","double"], "default": null },
+        { "name": "portfolio",          "type": ["null","double"], "default": null },
+        { "name": "opcvm",              "type": ["null","double"], "default": null },
+        { "name": "swap",               "type": ["null","double"], "default": null },
+        { "name": "cashAcc",            "type": ["null","double"], "default": null },
+        { "name": "closeFuture",        "type": ["null","double"], "default": null },
+        { "name": "future",             "type": ["null","double"], "default": null },
+        { "name": "usdRatePrev",        "type": ["null","double"], "default": null },
+        { "name": "dividendsAcc",       "type": ["null","double"], "default": null },
+        { "name": "mngmFee",            "type": ["null","double"], "default": null },
+        { "name": "feesAcc",            "type": ["null","double"], "default": null },
+        { "name": "cashAtSight",        "type": ["null","double"], "default": null },
+        { "name": "collateralAccount",  "type": ["null","double"], "default": null },
+        { "name": "futureHolding",      "type": ["null","double"], "default": null },
+        { "name": "portfolioAccr",      "type": ["null","double"], "default": null },
+        { "name": "accrued",            "type": ["null","double"], "default": null },
+        { "name": "idLookupFund",       "type": ["null", { "type": "string", "logicalType": "uuid" }], "default": null }
+      ]
+    }
+
+  ]
+}
