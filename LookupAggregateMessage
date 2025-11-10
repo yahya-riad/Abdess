@@ -1,0 +1,284 @@
+// LookupAggregateMessage.cs
+using System;
+using System.Collections.Generic;
+
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    public class LookupAggregateMessage
+    {
+        public Guid EventId { get; set; }
+        public DateTime EventTs { get; set; }
+
+        public LookupDto Lookup { get; set; } = new();
+        public FundDto Fund { get; set; } = new();
+
+        // liste de parts
+        public List<ShareClassDto> ShareClassDtos { get; set; } = new();
+
+        // agrégats globalisés
+        public PositionDto? Position { get; set; }
+
+        // référence logique (sans PK) entre Lookup et Fund
+        public LookupFundRefDto? LookupFund { get; set; }
+    }
+}
+// LookupDto.cs
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    public class LookupDto
+    {
+        public string? FileName { get; set; }
+        public string? IsInShareClass { get; set; }
+        public string? FundCode { get; set; }   // clé métier vers Fund
+    }
+}
+// FundDto.cs
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    public class FundDto
+    {
+        public string Code { get; set; } = null!;   // clé métier
+        public string? Description { get; set; }
+        public string? Currency { get; set; }
+        public string? CafCode { get; set; }
+    }
+}
+// ShareClassDto.cs
+using System.Collections.Generic;
+
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    public class ShareClassDto
+    {
+        public string Isin { get; set; } = null!;    // clé métier
+        public string? Name { get; set; }
+        public string? Currency { get; set; }
+
+        // référence métier vers le fond parent
+        public string FundCode { get; set; } = null!;
+
+        // Plusieurs NAVs (historique)
+        public List<NavDto> Navs { get; set; } = new();
+    }
+}
+// NavDto.cs
+using System;
+
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    public class NavDto
+    {
+        public DateTime NavDate { get; set; }
+        public string? NavToday { get; set; }
+        public string? NavYesterday { get; set; }
+
+        public double? NavPerShareClass { get; set; }
+        public double? FundNavInShareCcy { get; set; }
+        public double? NavPublished { get; set; }
+        public double? TotalActive { get; set; }
+        public double? NavTodayInFundCurrency { get; set; }
+        public double? SharesOut { get; set; }
+        public double? ActifNetFund { get; set; }
+        public double? TotalSharesOut { get; set; }
+        public double? PnLInFundCCy { get; set; }
+        public double? NavInFundCurrency { get; set; }
+    }
+}
+// PositionDto.cs
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    public class PositionDto
+    {
+        // rattachement métier
+        public string FundCode { get; set; } = null!;
+
+        public double? Equity { get; set; }
+        public double? Bond { get; set; }
+        public double? Tcn { get; set; }
+        public double? Coupon { get; set; }
+        public double? Portfolio { get; set; }
+        public double? CashAcc { get; set; }
+        public double? Depav { get; set; }
+        public double? CloseFuture { get; set; }
+        public double? Future { get; set; }
+        public double? UsdRate { get; set; }
+        public double? DividendAcc { get; set; }
+        public double? MgnFed { get; set; }
+        public double? CashDcpxv { get; set; }
+        public double? FeesAcc { get; set; }
+        public double? CashAtSight { get; set; }
+        public double? CollateralAccount { get; set; }
+        public double? FutureHolding { get; set; }
+        public double? PortfolioAccr { get; set; }   // orthographe “Accr”
+        public double? Accrued { get; set; }
+    }
+}
+// LookupFundRefDto.cs
+namespace Bnpp.Am.Eima.AD.BusinessModels.Dto
+{
+    // Représente le lien Lookup <-> Fund sans exposer des PK DB
+    public class LookupFundRefDto
+    {
+        public string FundCode { get; set; } = null!;
+        public string? LookupFileName { get; set; }
+        public string? LookupFundNote { get; set; } // champ libre si besoin
+    }
+}
+(Optionnel) Converters JSON pour timestamps en millis
+
+
+Si tes messages portent NavDate / EventTs en millisecondes epoch, ajoute le converter (identique à celui proposé avant) et l’attribut :
+
+using System;
+using System.Text.Json.Serialization;
+using Bnpp.Am.Eima.AD.Common.Json;
+
+public class LookupAggregateMessage
+{
+    public Guid EventId { get; set; }
+
+    [JsonConverter(typeof(UnixMillisDateTimeConverter))]
+    public DateTime EventTs { get; set; }
+    // ...
+}
+
+public class NavDto
+{
+    [JsonConverter(typeof(UnixMillisDateTimeConverter))]
+    public DateTime NavDate { get; set; }
+    // ...
+}
+Tests xUnit (avec listes + toutes props)
+
+
+Voici un test qui vérifie la désérialisation d’une liste de NAVs et toutes les propriétés clés :
+
+// DtoFullTests.cs
+using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Bnpp.Am.Eima.AD.BusinessModels.Dto;
+using Bnpp.Am.Eima.AD.Common.Json;
+using Xunit;
+
+namespace Bnpp.Am.Eima.AD.Tests.Dto
+{
+    public class DtoFullTests
+    {
+        private static JsonSerializerOptions Options()
+        {
+            var o = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            o.Converters.Add(new UnixMillisDateTimeConverter());
+            o.Converters.Add(new JsonStringEnumConverter());
+            return o;
+        }
+
+        [Fact]
+        public void Deserialize_Message_With_Listed_Navs_And_Full_Position()
+        {
+            var json = @"
+{
+  ""eventId"": ""9c5b5d3a-0c8e-4b64-9c8d-0c1fa52b9aaa"",
+  ""eventTs"": 1731110400000,
+  ""lookup"": { ""fileName"": ""import.csv"", ""isInShareClass"": ""Y"", ""fundCode"": ""F42"" },
+  ""fund"": { ""code"": ""F42"", ""description"": ""Global Balanced"", ""currency"": ""EUR"", ""cafCode"": ""CAF001"" },
+  ""shareClassDtos"": [
+    {
+      ""isin"": ""FR0000000001"",
+      ""name"": ""Class A EUR"",
+      ""currency"": ""EUR"",
+      ""fundCode"": ""F42"",
+      ""navs"": [
+        { ""navDate"": 1731110400000, ""navPerShareClass"": 12.34, ""fundNavInShareCcy"": 1000000.0, ""sharesOut"": 10000.0 },
+        { ""navDate"": 1731196800000, ""navPerShareClass"": 12.40, ""fundNavInShareCcy"": 1010000.0, ""sharesOut"": 10020.0 }
+      ]
+    }
+  ],
+  ""position"": {
+    ""fundCode"": ""F42"",
+    ""equity"": 55.2,
+    ""bond"": 35.8,
+    ""tcn"": 2.0,
+    ""coupon"": 0.0,
+    ""portfolio"": 100.0,
+    ""cashAcc"": 1.1,
+    ""depav"": 0.0,
+    ""closeFuture"": 0.0,
+    ""future"": 0.0,
+    ""usdRate"": 1.08,
+    ""dividendAcc"": 0.0,
+    ""mgnFed"": 0.0,
+    ""cashDcpxv"": 0.0,
+    ""feesAcc"": 0.0,
+    ""cashAtSight"": 0.0,
+    ""collateralAccount"": 0.0,
+    ""futureHolding"": 0.0,
+    ""portfolioAccr"": 0.0,
+    ""accrued"": 0.0
+  },
+  ""lookupFund"": { ""fundCode"": ""F42"", ""lookupFileName"": ""import.csv"" }
+}";
+
+            var msg = JsonSerializer.Deserialize<LookupAggregateMessage>(json, Options());
+            Assert.NotNull(msg);
+
+            // Fund & Lookup
+            Assert.Equal("F42", msg!.Fund.Code);
+            Assert.Equal("F42", msg.Lookup.FundCode);
+            Assert.Equal("import.csv", msg.Lookup.FileName);
+
+            // ShareClass + NAVs
+            Assert.Single(msg.ShareClassDtos);
+            var sc = msg.ShareClassDtos[0];
+            Assert.Equal("FR0000000001", sc.Isin);
+            Assert.Equal(2, sc.Navs.Count);
+            Assert.Equal(12.34, sc.Navs[0].NavPerShareClass);
+            Assert.Equal(12.40, sc.Navs[1].NavPerShareClass);
+
+            // Position full props
+            var p = msg.Position!;
+            Assert.Equal(55.2, p.Equity);
+            Assert.Equal(35.8, p.Bond);
+            Assert.Equal(2.0, p.Tcn);
+            Assert.Equal(0.0, p.Coupon);
+            Assert.Equal(100.0, p.Portfolio);
+            Assert.Equal(1.1, p.CashAcc);
+            Assert.Equal(0.0, p.Depav);
+            Assert.Equal(0.0, p.CloseFuture);
+            Assert.Equal(0.0, p.Future);
+            Assert.Equal(1.08, p.UsdRate);
+            Assert.Equal(0.0, p.DividendAcc);
+            Assert.Equal(0.0, p.MgnFed);
+            Assert.Equal(0.0, p.CashDcpxv);
+            Assert.Equal(0.0, p.FeesAcc);
+            Assert.Equal(0.0, p.CashAtSight);
+            Assert.Equal(0.0, p.CollateralAccount);
+            Assert.Equal(0.0, p.FutureHolding);
+            Assert.Equal(0.0, p.PortfolioAccr);
+            Assert.Equal(0.0, p.Accrued);
+
+            // Logical ref
+            Assert.Equal("F42", msg.LookupFund!.FundCode);
+            Assert.Equal("import.csv", msg.LookupFund.LookupFileName);
+        }
+    }
+}
+Pourquoi j’avais simplifié avant ?
+Pour un contrat Avro minimal (plus stable et facile à faire évoluer), j’avais :
+
+1 seul Nav (le plus récent) → tu voulais peut-être juste le dernier NAV.
+
+Position réduite aux métriques utilisées par ton écran/service.
+
+pas de refs croisées complexes (limiter les cycles).
+
+
+
+Mais si ton besoin est fidélité complète et historisation locale, la version ci-dessus, avec listes + toutes les propriétés, est celle à utiliser.
+
+Tu peux toujours ne publier qu’un seul NAV côté producteur si tu ne veux pas envoyer l’historique — la liste fonctionnera aussi avec 0/1 élément.
+
