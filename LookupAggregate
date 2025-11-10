@@ -1,0 +1,296 @@
+
+avro/LookupAggregate.avsc
+
+{
+  "type": "record",
+  "name": "LookupAggregate",
+  "namespace": "Bnpp.Am.Eima.AD",
+  "fields": [
+    { "name": "eventId", "type": { "type":"string", "logicalType":"uuid" } },
+    { "name": "eventTs", "type": { "type":"long", "logicalType":"timestamp-millis" } },
+
+    { "name": "lookup", "type": {
+      "type": "record", "name": "LookupDto",
+      "fields": [
+        { "name": "fileName", "type": ["null","string"], "default": null },
+        { "name": "isInShareClass", "type": ["null","string"], "default": null },
+        { "name": "fundCode", "type": ["null","string"], "default": null }
+      ]
+    }},
+
+    { "name": "fund", "type": {
+      "type": "record", "name": "FundDto",
+      "fields": [
+        { "name": "code", "type": "string" },
+        { "name": "description", "type": ["null","string"], "default": null },
+        { "name": "currency", "type": ["null","string"], "default": null },
+        { "name": "cafCode", "type": ["null","string"], "default": null }
+      ]
+    }},
+
+    { "name": "shareClassDtos", "type": {
+      "type": "array", "items": {
+        "type": "record", "name": "ShareClassDto",
+        "fields": [
+          { "name": "isin", "type": "string" },
+          { "name": "name", "type": ["null","string"], "default": null },
+          { "name": "currency", "type": ["null","string"], "default": null },
+          { "name": "fundCode", "type": "string" },
+
+          { "name": "navs", "type": ["null", {
+            "type": "record", "name": "NavDto",
+            "fields": [
+              { "name": "navDate", "type": { "type":"long", "logicalType":"timestamp-millis" } },
+              { "name": "navPerShareClass", "type": ["null","double"], "default": null },
+              { "name": "fundNavInShareCcy", "type": ["null","double"], "default": null },
+              { "name": "sharesOut", "type": ["null","double"], "default": null }
+            ]
+          }], "default": null }
+        ]
+      }
+    }},
+
+    { "name": "position", "type": {
+      "type": "record", "name": "PositionDto",
+      "fields": [
+        { "name": "fundCode", "type": "string" },
+        { "name": "equity", "type": ["null","double"], "default": null },
+        { "name": "bond", "type": ["null","double"], "default": null },
+        { "name": "accrued", "type": ["null","double"], "default": null }
+      ]
+    }}
+  ]
+}
+Exemple de message
+
+
+sample-lookup-aggregate.json
+
+{
+  "eventId": "9c5b5d3a-0c8e-4b64-9c8d-0c1fa52b9aaa",
+  "eventTs": 1731110400000,
+  "lookup": { "fileName": "import_2025_11_09.csv", "isInShareClass": "Y", "fundCode": "F42" },
+  "fund": { "code": "F42", "description": "Global Balanced", "currency": "EUR", "cafCode": "CAF001" },
+  "shareClassDtos": [
+    {
+      "isin": "FR0000000001",
+      "name": "Class A EUR",
+      "currency": "EUR",
+      "fundCode": "F42",
+      "navs": { "navDate": 1731110400000, "navPerShareClass": 12.34, "fundNavInShareCcy": 1000000.0, "sharesOut": 10000.0 }
+    }
+  ],
+  "position": { "fundCode": "F42", "equity": 55.2, "bond": 35.8, "accrued": 0.0 }
+}
+2) Consumer Kafka (.NET) – mapping 
+sans Id
+ + UPSERT par clés métiers
+
+
+a) Enregistrer une table de dédup
+
+
+SQL (ex. SQL Server) :
+
+create table ProcessedEvents(
+  EventId uniqueidentifier not null primary key,
+  ProcessedAt datetime2 not null default sysutcdatetime()
+);
+b) Configuration EF des PK générées par la BDD
+
+
+Exemple entités (PK générée par la BDD : int IDENTITY ici ; si tu préfères uniqueidentifier avec default NEWSEQUENTIALID(), adapte la config) :
+
+public class Fund
+{
+    public int Id { get; set; }              // PK DB (IDENTITY)
+    public string Code { get; set; } = null!;
+    public string? Description { get; set; }
+    public string? Currency { get; set; }
+    public string? CafCode { get; set; }
+    public ICollection<ShareClass> ShareClasses { get; set; } = new List<ShareClass>();
+}
+
+public class ShareClass
+{
+    public int Id { get; set; }
+    public string ISIN { get; set; } = null!;
+    public string? Name { get; set; }
+    public string? Currency { get; set; }
+
+    public int FundId { get; set; }
+    public Fund Fund { get; set; } = null!;
+    public Nav? Navs { get; set; }
+}
+
+public class Nav
+{
+    public int Id { get; set; }
+    public DateTime NavDate { get; set; }
+    public double? NavPerShareClass { get; set; }
+    public double? FundNavInShareCcy { get; set; }
+    public double? SharesOut { get; set; }
+
+    public int ShareClassId { get; set; }
+    public ShareClass ShareClass { get; set; } = null!;
+}
+
+public class Position
+{
+    public int Id { get; set; }
+    public int FundId { get; set; }
+    public Fund Fund { get; set; } = null!;
+    public double? Equity { get; set; }
+    public double? Bond { get; set; }
+    public double? Accrued { get; set; }
+}
+OnModelCreating (clés métiers + index uniques) :
+
+modelBuilder.Entity<Fund>()
+    .HasIndex(f => f.Code)
+    .IsUnique();
+
+modelBuilder.Entity<ShareClass>()
+    .HasIndex(sc => new { sc.ISIN, sc.FundId })
+    .IsUnique();
+
+modelBuilder.Entity<ProcessedEvent>()
+    .HasKey(e => e.EventId);
+c) Consumer : on lit Avro, on 
+upsert
+ via clés métiers
+
+
+Messaging/KafkaLookupAggregateConsumer.cs
+
+using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
+using Avro.Generic;
+using Microsoft.EntityFrameworkCore;
+
+public class KafkaLookupAggregateConsumer : BackgroundService
+{
+    private readonly ILogger<KafkaLookupAggregateConsumer> _logger;
+    private readonly IServiceProvider _sp;
+    private readonly IConfiguration _cfg;
+
+    public KafkaLookupAggregateConsumer(ILogger<KafkaLookupAggregateConsumer> logger,
+                                        IServiceProvider sp,
+                                        IConfiguration cfg)
+    { _logger = logger; _sp = sp; _cfg = cfg; }
+
+    protected override async Task ExecuteAsync(CancellationToken stop)
+    {
+        var consumerCfg = new ConsumerConfig
+        {
+            BootstrapServers = _cfg["Kafka:BootstrapServers"],
+            GroupId = _cfg["Kafka:GroupId"],
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+            EnableAutoCommit = true
+        };
+
+        using var sr = new CachedSchemaRegistryClient(new SchemaRegistryConfig { Url = _cfg["SchemaRegistry:Url"]! });
+        var valueDeser = new AvroDeserializer<GenericRecord>(sr).AsSyncOverAsync();
+
+        using var consumer = new ConsumerBuilder<string, GenericRecord>(consumerCfg)
+            .SetValueDeserializer(valueDeser)
+            .Build();
+
+        consumer.Subscribe(_cfg["Kafka:Topic"]);
+        while (!stop.IsCancellationRequested)
+        {
+            var cr = consumer.Consume(stop);
+            await HandleMessageAsync(cr.Message.Value, stop);
+        }
+    }
+
+    private static Guid G(object? v) => v is string s && Guid.TryParse(s, out var g) ? g : Guid.Empty;
+    private static DateTime Ts(object v) => DateTimeOffset.FromUnixTimeMilliseconds((long)v).UtcDateTime;
+
+    private async Task HandleMessageAsync(GenericRecord r, CancellationToken ct)
+    {
+        var eventId = G(r["eventId"]);
+        using var scope = _sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Déduplication
+        if (await db.ProcessedEvents.AnyAsync(e => e.EventId == eventId, ct))
+        {
+            _logger.LogInformation("Event {EventId} déjà traité.", eventId);
+            return;
+        }
+
+        var lookup = (GenericRecord)r["lookup"];
+        var fundRec = (GenericRecord)r["fund"];
+        var scArray = (IEnumerable<object>)r["shareClassDtos"];
+        var posRec = (GenericRecord)r["position"];
+
+        // 1) UPSERT Fund par Code
+        var fundCode = (string)fundRec["code"];
+        var fund = await db.Funds.SingleOrDefaultAsync(f => f.Code == fundCode, ct);
+        if (fund is null)
+        {
+            fund = new Fund { Code = fundCode };
+            db.Funds.Add(fund); // PK générée par DB
+        }
+        fund.Description = (string?)fundRec["description"];
+        fund.Currency = (string?)fundRec["currency"];
+        fund.CafCode = (string?)fundRec["cafCode"];
+
+        // 2) UPSERT ShareClasses par (ISIN, FundId)
+        foreach (var scObj in scArray)
+        {
+            var scRec = (GenericRecord)scObj;
+            var isin = (string)scRec["isin"];
+            // On s'assurera de connaître fund.Id après SaveChanges
+            var shareClass = await db.ShareClasses
+                .Include(s => s.Navs)
+                .FirstOrDefaultAsync(s => s.ISIN == isin && s.Fund.Code == fundCode, ct);
+
+            if (shareClass is null)
+            {
+                shareClass = new ShareClass
+                {
+                    ISIN = isin,
+                    Name = (string?)scRec["name"],
+                    Currency = (string?)scRec["currency"],
+                    Fund = fund
+                };
+                db.ShareClasses.Add(shareClass);
+            }
+            else
+            {
+                shareClass.Name = (string?)scRec["name"];
+                shareClass.Currency = (string?)scRec["currency"];
+            }
+
+            var nav = (GenericRecord?)scRec["navs"];
+            if (nav != null)
+            {
+                var navDate = Ts(nav["navDate"]);
+                // un seul NAV par date
+                var existingNav = await db.Navs
+                    .FirstOrDefaultAsync(n => n.ShareClassId == shareClass.Id && n.NavDate == navDate, ct);
+
+                if (existingNav is null)
+                {
+                    existingNav = new Nav { ShareClass = shareClass, NavDate = navDate };
+                    db.Navs.Add(existingNav);
+                }
+                existingNav.NavPerShareClass = (double?)nav["navPerShareClass"];
+                existingNav.FundNavInShareCcy = (double?)nav["fundNavInShareCcy"];
+                existingNav.SharesOut = (double?)nav["sharesOut"];
+            }
+        }
+
+        // 3) UPSERT Position par Fund (clé = FundId + date la plus récente si besoin)
+        if (posRec != null)
+        {
+            var position = await db.Positions.FirstOrDefaultAsync(p => p.Fund.Code == fundCode, ct);
+            if (position is null)
+            {
+                position = new Position { Fund = fund };
+                db.Positions.Add(position);
+            }
+            position
