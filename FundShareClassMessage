@@ -1,0 +1,69 @@
+{
+  "type": "record",
+  "name": "FundShareClassMessage",
+  "namespace": "Bnpp.Am.Eima.AD",
+  "doc": "One Kafka message per share class. Lookup is the entry point. Fund + NAV are contextual to the lookup; Position is specific to the share class.",
+  "fields": [
+    { "name": "eventId", "type": { "type": "string", "logicalType": "uuid" } },
+    { "name": "eventTs", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+
+    { "name": "lookup", "type": {
+      "type": "record", "name": "Lookup",
+      "doc": "Entry point of the message — represents the content imported from a lookup file.",
+      "fields": [
+        { "name": "lookupName",  "type": "string" },
+        { "name": "fileName",    "type": ["null","string"], "default": null },
+        { "name": "businessLine","type": ["null","string"], "default": null }
+      ]
+    }},
+
+    { "name": "fund", "type": {
+      "type": "record", "name": "FundRef",
+      "doc": "Fund reference data, same for all share classes in the lookup.",
+      "fields": [
+        { "name": "code",        "type": "string" },
+        { "name": "description", "type": ["null","string"], "default": null },
+        { "name": "currency",    "type": ["null","string"], "default": null },
+        { "name": "cafCode",     "type": ["null","string"], "default": null },
+        { "name": "id",          "type": ["null", { "type": "string", "logicalType": "uuid" }], "default": null }
+      ]
+    }},
+
+    { "name": "fundNav", "type": ["null", {
+      "type": "record", "name": "FundNav",
+      "doc": "NAV at fund level (same value reused for all share classes inside the lookup).",
+      "fields": [
+        { "name": "navDate",               "type": { "type":"long", "logicalType":"timestamp-millis" } },
+        { "name": "navInFundCurrency",     "type": ["null","double"], "default": null },
+        { "name": "fundNavInShareCcy",     "type": ["null","double"], "default": null },
+        { "name": "sharesOut",             "type": ["null","double"], "default": null },
+        { "name": "navPublished",          "type": ["null","double"], "default": null },
+        { "name": "totalActive",           "type": ["null","double"], "default": null },
+        { "name": "pnlInFundCcy",          "type": ["null","double"], "default": null }
+      ]
+    }], "default": null },
+
+    { "name": "shareClass", "type": {
+      "type": "record", "name": "ShareClass",
+      "doc": "Share class data – one message = one share class.",
+      "fields": [
+        { "name": "isin",     "type": "string" },
+        { "name": "name",     "type": ["null","string"], "default": null },
+        { "name": "currency", "type": ["null","string"], "default": null }
+      ]
+    }},
+
+    { "name": "position", "type": ["null", {
+      "type": "record", "name": "Position",
+      "doc": "Position specific to the share class.",
+      "fields": [
+        { "name": "equity",            "type": ["null","double"], "default": null },
+        { "name": "bond",              "type": ["null","double"], "default": null },
+        { "name": "accrued",           "type": ["null","double"], "default": null },
+        { "name": "cashAcc",           "type": ["null","double"], "default": null },
+        { "name": "futureHolding",     "type": ["null","double"], "default": null },
+        { "name": "portfolioAccr",     "type": ["null","double"], "default": null }
+      ]
+    }], "default": null }
+  ]
+}
