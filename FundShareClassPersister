@@ -1,0 +1,133 @@
+using Bnpp.Am.Eima.AD.BusinessModels.DTOs;
+using Bnpp.Am.Eima.AD.DataLayer;
+using Bnpp.Am.Eima.AD.DataLayer.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace Bnpp.Am.Eima.AD.Service.Services;
+
+public class FundShareClassPersister
+{
+    private readonly EimaAdDbContext _db;
+
+    public FundShareClassPersister(EimaAdDbContext db) => _db = db;
+
+    public async Task PersistAsync(FundShareClassMessageDto dto, CancellationToken ct)
+    {
+        // 1) Upsert Fund
+        var fund = await _db.Funds.SingleOrDefaultAsync(f => f.Code == dto.Fund.Code, ct);
+        if (fund is null)
+        {
+            fund = new Fund
+            {
+                Code = dto.Fund.Code,
+                Description = dto.Fund.Description,
+                Currency = dto.Fund.Currency,
+                CafCode = dto.Fund.CafCode
+            };
+            _db.Funds.Add(fund);
+            await _db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            // mise à jour “douce”
+            fund.Description = dto.Fund.Description ?? fund.Description;
+            fund.Currency    = dto.Fund.Currency    ?? fund.Currency;
+            fund.CafCode     = dto.Fund.CafCode     ?? fund.CafCode;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        // 2) Upsert ShareClass
+        var sc = await _db.ShareClasses.SingleOrDefaultAsync(s => s.ISIN == dto.ShareClass.ISIN, ct);
+        if (sc is null)
+        {
+            sc = new ShareClass
+            {
+                ISIN = dto.ShareClass.ISIN,
+                Name = dto.ShareClass.Name,
+                Currency = dto.ShareClass.Currency,
+                FundId = fund.Id
+            };
+            _db.ShareClasses.Add(sc);
+            await _db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            // si le fund change, on ré-aligne
+            if (sc.FundId != fund.Id) sc.FundId = fund.Id;
+            sc.Name ??= dto.ShareClass.Name;
+            sc.Currency ??= dto.ShareClass.Currency;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        // 3) Upsert Fund NAV (si présent)
+        if (dto.FundNav is not null)
+        {
+            var navDateUtc = dto.FundNav.NavDate;
+            var existingNav = await _db.FundNavs
+                .SingleOrDefaultAsync(n => n.FundId == fund.Id && n.NavDateUtc == navDateUtc, ct);
+
+            if (existingNav is null)
+            {
+                var nav = new FundNav
+                {
+                    FundId = fund.Id,
+                    NavDateUtc = navDateUtc,
+                    NavInFundCurrency = dto.FundNav.NavInFundCurrency,
+                    FundNavInShareCcy = dto.FundNav.FundNavInShareCcy,
+                    SharesOut = dto.FundNav.SharesOut,
+                    NavPublished = dto.FundNav.NavPublished,
+                    TotalActive = dto.FundNav.TotalActive,
+                    PnLInFundCcy = dto.FundNav.PnLInFundCcy
+                };
+                _db.FundNavs.Add(nav);
+                await _db.SaveChangesAsync(ct);
+            }
+            else
+            {
+                // mise à jour des champs non nuls (idempotent-friendly)
+                existingNav.NavInFundCurrency = dto.FundNav.NavInFundCurrency ?? existingNav.NavInFundCurrency;
+                existingNav.FundNavInShareCcy = dto.FundNav.FundNavInShareCcy ?? existingNav.FundNavInShareCcy;
+                existingNav.SharesOut = dto.FundNav.SharesOut ?? existingNav.SharesOut;
+                existingNav.NavPublished = dto.FundNav.NavPublished ?? existingNav.NavPublished;
+                existingNav.TotalActive = dto.FundNav.TotalActive ?? existingNav.TotalActive;
+                existingNav.PnLInFundCcy = dto.FundNav.PnLInFundCcy ?? existingNav.PnLInFundCcy;
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
+        // 4) Upsert Position (clé = ShareClass + AsOfUtc)
+        if (dto.Position is not null)
+        {
+            var asOf = dto.EventTs; // tu peux remplacer par dto.FundNav?.NavDate si besoin
+            var existingPos = await _db.Positions
+                .SingleOrDefaultAsync(p => p.ShareClassId == sc.Id && p.AsOfUtc == asOf, ct);
+
+            if (existingPos is null)
+            {
+                var p = new Position
+                {
+                    ShareClassId = sc.Id,
+                    AsOfUtc = asOf,
+                    Equity = dto.Position.Equity,
+                    Bond = dto.Position.Bond,
+                    Accrued = dto.Position.Accrued,
+                    CashAcc = dto.Position.CashAcc,
+                    FutureHolding = dto.Position.FutureHolding,
+                    PortfolioAccr = dto.Position.PortfolioAccr
+                };
+                _db.Positions.Add(p);
+                await _db.SaveChangesAsync(ct);
+            }
+            else
+            {
+                existingPos.Equity = dto.Position.Equity ?? existingPos.Equity;
+                existingPos.Bond = dto.Position.Bond ?? existingPos.Bond;
+                existingPos.Accrued = dto.Position.Accrued ?? existingPos.Accrued;
+                existingPos.CashAcc = dto.Position.CashAcc ?? existingPos.CashAcc;
+                existingPos.FutureHolding = dto.Position.FutureHolding ?? existingPos.FutureHolding;
+                existingPos.PortfolioAccr = dto.Position.PortfolioAccr ?? existingPos.PortfolioAccr;
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+    }
+}
