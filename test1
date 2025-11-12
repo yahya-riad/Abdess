@@ -1,0 +1,25 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+// using the correct namespace where your DbContext is
+using Bnpp.Am.Eima.AD.DataLayer; // ← adapte selon ton projet
+
+namespace Bnpp.Am.Eima.AD.Persistence.Tests.TestHelpers;
+
+public static class SqliteDbFactory
+{
+    public static (EimaAdDbContext db, SqliteConnection conn) CreateOpenDb()
+    {
+        var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open(); // important: keep open to preserve DB
+
+        var options = new DbContextOptionsBuilder<EimaAdDbContext>()
+            .UseSqlite(conn)
+            .EnableSensitiveDataLogging()
+            .Options;
+
+        var db = new EimaAdDbContext(options);
+        db.Database.EnsureCreated(); // crée le schéma (tables, indexes...)
+
+        return (db, conn);
+    }
+}
