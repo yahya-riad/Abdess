@@ -1,0 +1,131 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
+using Bnpp.Am.Eima.AD.BusinessModels.DTOs;
+using Bnpp.Am.Eima.AD.Persistence.Tests.TestHelpers;
+// namespace where your persister lives :
+using Bnpp.Am.Eima.AD.Service.Services; 
+
+namespace Bnpp.Am.Eima.AD.Persistence.Tests;
+
+[TestClass]
+public class FundShareClassPersisterTests
+{
+    [TestMethod]
+    public async Task PersistAsync_should_insert_all_entities()
+    {
+        // Arrange
+        var (db, conn) = SqliteDbFactory.CreateOpenDb();
+        try
+        {
+            var sut = new FundShareClassPersister(db); // ton persister
+
+            var dto = new FundShareClassMessageDto
+            {
+                EventId = Guid.NewGuid(),
+                EventTs = DateTime.UtcNow,
+                Lookup = new LookupDto
+                {
+                    LookupName = "NAV_20250218",
+                    FileName = "file.csv"
+                },
+                Fund = new FundRefDto
+                {
+                    Code = "FUND_X",
+                    Description = "My test fund",
+                    Currency = "EUR",
+                    CafCode = "CAF123"
+                },
+                ShareClass = new ShareClassDto
+                {
+                    ISIN = "FR0000000001",
+                    Name = "Class A",
+                    Currency = "EUR"
+                },
+                FundNav = new FundNavDto
+                {
+                    NavDate = DateTime.UtcNow.Date,
+                    NavInFundCurrency = 123.45m,
+                    FundNavInShareCcy = 123.45m,
+                    SharesOut = 1000m
+                },
+                Position = new PositionDto
+                {
+                    Equity = 60.5m,
+                    Bond = 30.2m,
+                    Accrued = 1.1m
+                }
+            };
+
+            // Act
+            await sut.PersistAsync(dto, CancellationToken.None);
+
+            // Assert
+            db.Funds.Count().Should().Be(1);
+            db.ShareClasses.Count().Should().Be(1);
+            db.FundNavs.Count().Should().Be(1);
+            db.Positions.Count().Should().Be(1);
+            db.Lookups.Count().Should().Be(1);
+            db.LookupFunds.Count().Should().Be(1);
+
+            var fund = db.Funds.Single();
+            fund.Code.Should().Be("FUND_X");
+
+            var sc = db.ShareClasses.Single();
+            sc.ISIN.Should().Be("FR0000000001");
+        }
+        finally
+        {
+            db.Dispose();
+            conn.Dispose();
+        }
+    }
+
+    [TestMethod]
+    public async Task PersistAsync_twice_should_be_idempotent()
+    {
+        // Arrange
+        var (db, conn) = SqliteDbFactory.CreateOpenDb();
+        try
+        {
+            var sut = new FundShareClassPersister(db);
+
+            var dto = new FundShareClassMessageDto
+            {
+                EventId = Guid.NewGuid(),
+                EventTs = DateTime.UtcNow,
+                Lookup = new LookupDto
+                {
+                    LookupName = "NAV_20250218",
+                    FileName = "file.csv"
+                },
+                Fund = new FundRefDto
+                {
+                    Code = "FUND_X"
+                },
+                ShareClass = new ShareClassDto
+                {
+                    ISIN = "FR0000000001"
+                }
+            };
+
+            // Act: même message 2 fois
+            await sut.PersistAsync(dto, CancellationToken.None);
+            await sut.PersistAsync(dto, CancellationToken.None);
+
+            // Assert : pas de doublons
+            db.Funds.Count().Should().Be(1);
+            db.ShareClasses.Count().Should().Be(1);
+            db.Lookups.Count().Should().Be(1);
+            db.LookupFunds.Count().Should().Be(1);
+        }
+        finally
+        {
+            db.Dispose();
+            conn.Dispose();
+        }
+    }
+}
