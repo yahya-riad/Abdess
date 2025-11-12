@@ -1,0 +1,86 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions; // optional
+using Bnpp.Am.Eima.AD.BusinessModels.DTOs;
+
+namespace Bnpp.Am.Eima.AD.BusinessModels.Tests;
+
+[TestClass]
+public class FundShareClassMessageDtoTests
+{
+    private static JsonSerializerOptions _json = null!;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext _)
+    {
+        _json = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString // requires net5+
+        };
+        // If you use a custom converter:
+        // _json.Converters.Add(new UnixMsDateTimeConverter());
+    }
+
+    [TestMethod]
+    public void Deserialize_ValidJson_ShouldBindDto()
+    {
+        // Use @"" (verbatim string) in MSTest instead of triple quotes (C# 11 raw string)
+        var json = @"
+        {
+          ""eventId"": ""3b4f99ac-2bdf-4f1c-b3a7-6c74d3ead001"",
+          ""eventTs"": ""2025-02-18T10:15:00Z"",
+          ""lookup"": { ""lookupName"": ""NAV_20250218"", ""fileName"": ""file.csv"" },
+          ""fund"": { ""code"": ""FUND_X"", ""description"": ""Desc"", ""currency"": ""EUR"", ""cafCode"": ""CAF123"" },
+          ""fundNav"": { ""navDate"": ""2025-02-18T00:00:00Z"", ""navInFundCurrency"": 123.45, ""sharesOut"": 9999 },
+          ""shareClass"": { ""isin"": ""FR0000000001"", ""name"": ""A"", ""currency"": ""EUR"" },
+          ""position"": { ""equity"": 60.1, ""bond"": 30.2, ""accrued"": 1.1 }
+        }";
+
+        var dto = JsonSerializer.Deserialize<FundShareClassMessageDto>(json, _json);
+
+        dto.Should().NotBeNull();
+        dto!.Fund.Code.Should().Be("FUND_X");
+        dto.ShareClass.ISIN.Should().Be("FR0000000001");
+        dto.Lookup.LookupName.Should().Be("NAV_20250218");
+        dto.FundNav!.NavInFundCurrency.Should().Be(123.45);
+    }
+
+    [TestMethod]
+    public void Deserialize_MissingOptionals_ShouldNotFail()
+    {
+        var json = @"
+        {
+          ""eventId"": ""3b4f99ac-2bdf-4f1c-b3a7-6c74d3ead001"",
+          ""eventTs"": ""2025-02-18T10:15:00Z"",
+          ""lookup"": { ""lookupName"": ""NAV"" },
+          ""fund"": { ""code"": ""FUND_X"" },
+          ""shareClass"": { ""isin"": ""FR0000000001"" },
+          ""fundNav"": null,
+          ""position"": null
+        }";
+
+        var dto = JsonSerializer.Deserialize<FundShareClassMessageDto>(json, _json);
+        dto.Should().NotBeNull();
+        dto!.Fund.Description.Should().BeNull();   // optional
+        dto.Position.Should().BeNull();
+    }
+
+    [TestMethod]
+    public void Deserialize_NumbersAsStrings_ShouldWork()
+    {
+        var json = @"
+        {
+          ""eventId"": ""3b4f99ac-2bdf-4f1c-b3a7-6c74d3ead001"",
+          ""eventTs"": ""2025-02-18T10:15:00Z"",
+          ""lookup"": { ""lookupName"": ""NAV"" },
+          ""fund"": { ""code"": ""FUND_X"" },
+          ""shareClass"": { ""isin"": ""FR0000000001"" },
+          ""position"": { ""equity"": ""60.5"", ""bond"": ""30.2"", ""accrued"": ""1.1"" }
+        }";
+
+        var dto = JsonSerializer.Deserialize<FundShareClassMessageDto>(json, _json);
+        dto!.Position!.Equity.Should().Be(60.5);
+    }
+}
