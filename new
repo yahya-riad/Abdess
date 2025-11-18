@@ -1,0 +1,108 @@
+using System;
+using Bloomberglp.Blpapi;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // --- 1) Configuration de la session Bloomberg ---
+        SessionOptions sessionOptions = new SessionOptions
+        {
+            ServerHost = "localhost",    // si vous êtes sur la même machine que Bloomberg Terminal
+            ServerPort = 8194            // port standard
+        };
+
+        // --- 2) Lancer la session ---
+        Session session = new Session(sessionOptions);
+
+        if (!session.Start())
+        {
+            Console.WriteLine("❌ Impossible de démarrer la session.");
+            return;
+        }
+
+        // --- 3) Authentification Windows (OS_LOGON) ---
+        // Bloomberg utilise automatiquement l'utilisateur Windows connecté
+        Identity identity = session.CreateIdentity();
+
+        Service authService;
+        if (!session.OpenService("//blp/apiauth"))
+        {
+            Console.WriteLine("❌ Impossible d'ouvrir le service d'authentification.");
+            return;
+        }
+
+        authService = session.GetService("//blp/apiauth");
+
+        Request authRequest = authService.CreateAuthorizationRequest();
+        authRequest.Set("authType", "OS_LOGON");
+
+        // Lancer l’autorisation
+        CorrelationID cid = new CorrelationID();
+        session.SendAuthorizationRequest(authRequest, identity, cid);
+
+        // Attendre la réponse
+        bool isAuthorized = false;
+
+        while (!isAuthorized)
+        {
+            Event ev = session.NextEvent();
+
+            foreach (Message msg in ev)
+            {
+                if (msg.MessageType.ToString() == "AuthorizationSuccess")
+                {
+                    Console.WriteLine("✅ Authentification Windows réussie !");
+                    isAuthorized = true;
+                }
+                else if (msg.MessageType.ToString() == "AuthorizationFailure")
+                {
+                    Console.WriteLine("❌ Échec de l'autorisation : " + msg);
+                    return;
+                }
+            }
+
+            if (ev.Type == Event.EventType.RESPONSE)
+                break;
+        }
+
+        // --- 4) Ouvrir un service Bloomberg pour faire une requête ---
+        if (!session.OpenService("//blp/refdata"))
+        {
+            Console.WriteLine("❌ Impossible d'ouvrir le service refdata.");
+            return;
+        }
+
+        Service refDataService = session.GetService("//blp/refdata");
+
+        // --- 5) Exemple de requête : champs de la valeur IBM ---
+        Request request = refDataService.CreateRequest("ReferenceDataRequest");
+        request.Append("securities", "IBM US Equity");
+        request.Append("fields", "PX_LAST");
+        request.Append("fields", "BID");
+        request.Append("fields", "ASK");
+
+        session.SendRequest(request, new CorrelationID(1));
+
+        // --- 6) Lire la réponse ---
+        bool done = false;
+        while (!done)
+        {
+            Event ev = session.NextEvent();
+
+            switch (ev.Type)
+            {
+                case Event.EventType.PARTIAL_RESPONSE:
+                case Event.EventType.RESPONSE:
+                    foreach (Message msg in ev)
+                    {
+                        Console.WriteLine("📨 Réponse Bloomberg :");
+                        Console.WriteLine(msg);
+                    }
+                    if (ev.Type == Event.EventType.RESPONSE)
+                        done = true;
+                    break;
+            }
+        }
+    }
+}
