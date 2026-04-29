@@ -1,0 +1,134 @@
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
+import { AgGridAngular } from 'ag-grid-angular';
+import {
+  ColDef,
+  GridApi,
+  GridReadyEvent,
+  RowModelType,
+  themeBalham
+} from 'ag-grid-community';
+
+import { provideNativeDateAdapter } from '@angular/material/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSelectModule } from '@angular/material/select';
+
+@Component({
+  selector: 'app-epsal',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    AgGridAngular,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDatepickerModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDividerModule,
+    MatSelectModule
+  ],
+  templateUrl: './epsal.component.html',
+  providers: [provideNativeDateAdapter()]
+})
+export class EpsalComponent {
+  protected lastImport: Date | null = new Date();
+  protected searchText = '';
+  protected detailView = 'movement';
+
+  protected theme = themeBalham;
+  protected rowModelType: RowModelType = 'clientSide';
+  protected rowData: any[] = [];
+  protected gridApi: GridApi | undefined;
+
+  protected detailViewOptions = [
+    { value: 'movement', label: 'Movement' },
+    { value: 'book', label: 'Book Account' },
+    { value: 'aggregated', label: 'Aggregated Book Account' }
+  ];
+
+  protected columnDefs: ColDef[] = [
+    { field: 'fundName', headerName: 'Funds Name', filter: true, floatingFilter: true },
+    { field: 'fundType', headerName: 'Funds Type', filter: true, floatingFilter: true },
+    { field: 'isin', headerName: 'ISIN', filter: true, floatingFilter: true },
+    { field: 'aladdin', headerName: 'Aladdin', filter: true, floatingFilter: true },
+    { field: 'frequency', headerName: 'Frequency', filter: true, floatingFilter: true },
+    { field: 'vlLastDate', headerName: 'VL last date', filter: true, floatingFilter: true },
+    { field: 'nextVlValue', headerName: 'Next Vl Value', filter: true, floatingFilter: true },
+    { field: 'lastKnownValueDate', headerName: 'Last known value date', filter: true, floatingFilter: true },
+    { field: 'balanceImpact', headerName: 'Balance Impact', filter: true, floatingFilter: true },
+    { field: 'selectPct', headerName: 'Select', filter: true, floatingFilter: true }
+  ];
+
+  protected defaultColDef: ColDef = {
+    sortable: true,
+    resizable: true,
+    filter: true,
+    suppressHeaderMenuButton: true
+  };
+
+  constructor() {
+    this.rowData = [
+      {
+        fundName: 'ACTIONS LEGRAND',
+        fundType: 'Formula Funds',
+        isin: 'QS0002105P23',
+        aladdin: 'ACLEG',
+        frequency: 'Daily',
+        vlLastDate: '04/08/2025',
+        nextVlValue: '04/08/2025',
+        lastKnownValueDate: '04/08/2025',
+        balanceImpact: '+3598797',
+        selectPct: '0.25%'
+      },
+      {
+        fundName: 'REXEL INTERNATIONAL',
+        fundType: 'Invested Funds in Actions',
+        isin: 'QS0002105P23',
+        aladdin: 'RXLIC',
+        frequency: 'Weekly',
+        vlLastDate: '04/08/2025',
+        nextVlValue: '04/08/2025',
+        lastKnownValueDate: '04/08/2025',
+        balanceImpact: '+3598797',
+        selectPct: '0.25%'
+      },
+      {
+        fundName: 'ARCADE GESTION',
+        fundType: 'Formula Funds',
+        isin: 'QS0002105P23',
+        aladdin: 'ACLEG',
+        frequency: 'Daily',
+        vlLastDate: '04/08/2025',
+        nextVlValue: '04/08/2025',
+        lastKnownValueDate: '04/08/2025',
+        balanceImpact: '-2598797',
+        selectPct: '-2.25%'
+      }
+    ];
+  }
+
+  protected onGridReady(event: GridReadyEvent): void {
+    this.gridApi = event.api;
+    this.gridApi.sizeColumnsToFit();
+  }
+
+  protected refreshGrid(): void {
+    this.gridApi?.refreshCells();
+  }
+
+  protected applySearch(): void {
+    this.gridApi?.setGridOption('quickFilterText', this.searchText);
+  }
+
+  protected exportXls(): void {
+    this.gridApi?.exportDataAsCsv({ fileName: 'epsal-synthesis.csv' });
+  }
+}
