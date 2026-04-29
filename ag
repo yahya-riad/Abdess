@@ -1,0 +1,62 @@
+<div class="epsal-page">
+  <div class="top-toolbar">
+    <div class="toolbar-left">
+      <mat-form-field appearance="outline" class="import-field">
+        <mat-label>Last Import</mat-label>
+        <input matInput placeholder="JJ/MM/AAAA" />
+      </mat-form-field>
+
+      <button mat-flat-button class="ok-btn">OK</button>
+    </div>
+
+    <div class="toolbar-right">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search</mat-label>
+        <input matInput />
+        <button mat-icon-button matSuffix>
+          <mat-icon>search</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <button mat-flat-button class="ok-btn small">OK</button>
+    </div>
+  </div>
+
+  <div class="section-title">Epsal Synthesis</div>
+
+  <nav mat-tab-nav-bar class="epsal-tabs" [tabPanel]="tabPanel">
+    <a mat-tab-link [active]="activeTab === 'synthesis'" (click)="activeTab='synthesis'">Synthesis</a>
+    <a mat-tab-link [active]="activeTab === 'firm'" (click)="activeTab='firm'">Firm Orders</a>
+    <a mat-tab-link [active]="activeTab === 'limit'" (click)="activeTab='limit'">Limit Orders</a>
+    <a mat-tab-link [active]="activeTab === 'arbitrage'" (click)="activeTab='arbitrage'">Arbitrage Orders</a>
+  </nav>
+  <mat-tab-nav-panel #tabPanel></mat-tab-nav-panel>
+
+  <div class="grid-toolbar">
+    <div></div>
+
+    <div class="grid-actions">
+      <mat-form-field appearance="outline" class="detail-view-field">
+        <mat-label>Detailed View</mat-label>
+        <mat-select [(value)]="detailView">
+          <mat-option value="movement">Movement</mat-option>
+          <mat-option value="book">Book Account</mat-option>
+          <mat-option value="aggregated">Aggregated Book Account</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button class="export-btn">Export XLS</button>
+    </div>
+  </div>
+
+  <div class="grid-wrapper ag-theme-alpine">
+    <ag-grid-angular
+      class="epsal-grid"
+      [rowData]="rowData"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [rowSelection]="'multiple'"
+      [animateRows]="true">
+    </ag-grid-angular>
+  </div>
+</div>
