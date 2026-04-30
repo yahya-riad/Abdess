@@ -1,0 +1,56 @@
+this.rowData = [
+  {
+    fund: {
+      name: 'ACTIONS LEGRAND',
+      type: 'Formula Funds',
+      isin: 'QS0002105P23'
+    },
+    scope: {
+      Aladdin: 'ACLEG',
+      frequency: 'Daily'
+    },
+    subscription: {
+      vlLastDate: '04/08/2025',
+      nextVlValue: '04/08/2025',
+      lastvlDate: '04/08/2025',
+      balanceimpact: '+3598797',
+      percent: '0.25%'
+    }
+  },
+  {
+    fund: {
+      name: 'REXEL INTERNATIONAL',
+      type: 'Invested Funds in Actions',
+      isin: 'QS0002105P23'
+    },
+    scope: {
+      Aladdin: 'RXLIC',
+      frequency: 'Weekly'
+    },
+    subscription: {
+      vlLastDate: '04/08/2025',
+      nextVlValue: '04/08/2025',
+      lastvlDate: '04/08/2025',
+      balanceimpact: '+3598797',
+      percent: '0.25%'
+    }
+  },
+  {
+    fund: {
+      name: 'ARCADE GESTION',
+      type: 'Formula Funds',
+      isin: 'QS0002105P23'
+    },
+    scope: {
+      Aladdin: 'ACLEG',
+      frequency: 'Daily'
+    },
+    subscription: {
+      vlLastDate: '04/08/2025',
+      nextVlValue: '04/08/2025',
+      lastvlDate: '04/08/2025',
+      balanceimpact: '-2598797',
+      percent: '-2.25%'
+    }
+  }
+];
