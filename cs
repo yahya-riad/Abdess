@@ -177,3 +177,84 @@
   background: #fff;
 }
 
+
+
+
+.filters-section {
+  padding: 8px 12px;
+  min-height: 54px;
+}
+
+.date-form-field,
+.search-form-field {
+  width: 170px;
+}
+
+.search-form-field {
+  width: 165px;
+}
+
+.section-title {
+  font-size: 12px;
+  color: #7ea796;
+  margin-bottom: 6px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tabs-row {
+  display: flex;
+  gap: 6px;
+}
+
+.epsal-tab {
+  min-width: 92px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #bcc8c0;
+  background: #fff;
+  color: #666;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.epsal-tab.active {
+  background: #87b29f;
+  color: #fff;
+  border-color: #87b29f;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-view-field {
+  width: 130px;
+}
+
+.export-btn {
+  height: 28px;
+  min-width: 84px;
+  border: 1px solid #bfc4d6;
+  border-radius: 16px;
+  background: #fff;
+  color: #6e79b2;
+  font-size: 10px;
+  padding: 0 12px;
+}
+
+.grid-wrapper {
+  width: 100%;
+  height: 300px;
+  background: #fff;
+  margin-top: 6px;
+}
+
+
