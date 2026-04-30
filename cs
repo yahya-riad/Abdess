@@ -98,3 +98,82 @@
   font-size: 12px;
 }
 
+
+
+
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.search-section {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.page-section {
+  padding: 0 12px 12px;
+}
+
+.section-title {
+  font-size: 12px;
+  color: #7ea796;
+  margin-bottom: 8px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tabs-row {
+  display: flex;
+  gap: 8px;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.epsal-tab {
+  min-width: 110px;
+  height: 30px;
+  border: 1px solid #bcc8c0;
+  background: #fff;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.epsal-tab.active {
+  background: #87b29f;
+  color: #fff;
+  border-color: #87b29f;
+}
+
+.detail-view-field {
+  width: 150px;
+}
+
+.export-btn {
+  height: 32px;
+  min-width: 90px;
+  border: 1px solid #bfc4d6;
+  border-radius: 16px;
+  background: #fff;
+  color: #6e79b2;
+  font-size: 11px;
+  padding: 0 14px;
+}
+
+.grid-wrapper {
+  width: 100%;
+  height: 340px;
+  background: #fff;
+}
+
