@@ -258,3 +258,31 @@
 }
 
 
+
+:host ::ng-deep .detail-view-field .mat-mdc-text-field-wrapper {
+  height: 34px;
+  min-height: 34px;
+  background: #fff;
+  border-radius: 0;
+}
+
+:host ::ng-deep .detail-view-field .mat-mdc-form-field-infix {
+  min-height: 34px;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+:host ::ng-deep .detail-view-field .mat-mdc-floating-label {
+  font-size: 10px;
+}
+
+:host ::ng-deep .detail-view-field .mat-mdc-select-value-text {
+  font-size: 12px;
+  color: #5f6762;
+}
+
+:host ::ng-deep .detail-view-field .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+
