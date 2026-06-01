@@ -58,3 +58,56 @@ def parse_file(file_path: str, schema: list[FieldSpec]) -> list[dict]:
             records.append(record)
 
     return records
+
+
+
+# transaction/parser/transaction_parser.py
+
+from datetime import datetime
+from transaction.model.transaction_line_dto import TransactionLineDto
+
+
+def parse_date(value: str) -> datetime | None:
+    value = value.strip()
+    if not value or value == "00000000":
+        return None
+    return datetime.strptime(value, "%Y%m%d")
+
+
+def parse_float(value: str) -> float | None:
+    value = value.strip().replace(",", ".")
+    if not value:
+        return None
+    return float(value)
+
+
+def parse_transaction_line(line: str) -> TransactionLineDto:
+    data = {
+        "TransactionType": line[0:20].strip(),
+        "OrderType": line[20:40].strip(),
+        "Isin": line[40:52].strip(),
+        "FundCode": line[52:70].strip(),
+        "TradeDate": parse_date(line[70:78]),
+        "SettlementDate": parse_date(line[78:86]),
+        "Quantity": parse_float(line[86:101]),
+        "PriceType": line[101:111].strip() or None,
+        "Underlying": line[111:141].strip() or None,
+        "Recycle": line[141:151].strip() or None,
+        "Amount": parse_float(line[151:166]),
+    }
+
+    return TransactionLineDto.model_validate(data)
+
+
+def parse_file(file_path: str) -> list[TransactionLineDto]:
+    items: list[TransactionLineDto] = []
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\n")
+            if not line.strip():
+                continue
+            items.append(parse_transaction_line(line))
+
+    return items
+
