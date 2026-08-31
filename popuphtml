@@ -1,0 +1,98 @@
+<div class="aggregated-book-account-dialog">
+  <div class="dialog-header">
+    <span class="dialog-title">Aggregated Book Account</span>
+
+    <button
+      type="button"
+      class="dialog-close-button"
+      aria-label="Close aggregated book account dialog"
+      (click)="close()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-scroll-content">
+    <!-- Bandeau avec les informations de la ligne sélectionnée -->
+    <div class="summary-grid">
+      <div class="summary-cell">
+        <span class="summary-label">Book</span>
+        <span class="summary-value">
+          {{ data.selectedRow.book ?? '-' }}
+        </span>
+      </div>
+
+      <div class="summary-cell summary-cell--wide">
+        <span class="summary-label">ACCOUNTING BANK</span>
+        <span class="summary-value">
+          {{ data.selectedRow.accountingBank ?? '-' }}
+        </span>
+      </div>
+
+      <div class="summary-cell">
+        <span class="summary-label">Bank Type Code</span>
+        <span class="summary-value">
+          {{ data.selectedRow.bankTypeCode ?? '-' }}
+        </span>
+      </div>
+
+      <div class="summary-cell">
+        <span class="summary-label">Book Date</span>
+        <span class="summary-value">
+          {{ data.selectedRow.bookDate ?? '-' }}
+        </span>
+      </div>
+
+      <div class="summary-cell summary-cell--wide">
+        <span class="summary-label">Last Book Name</span>
+        <span class="summary-value">
+          {{ data.selectedRow.lastBookName ?? '-' }}
+        </span>
+      </div>
+
+      <div class="summary-cell">
+        <span class="summary-label">L2B</span>
+        <span class="summary-value">
+          {{ data.selectedRow.l2b ?? '-' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Les deux tableaux AG Grid de la maquette -->
+    <div class="grids-container">
+      <section class="grid-section">
+        <ag-grid-angular
+          class="ag-theme-alpine epsal-popup-grid"
+          [columnDefs]="leftColumnDefs"
+          [defaultColDef]="defaultColDef"
+          [rowData]="leftRowData"
+          [rowSelection]="rowSelection"
+          [pagination]="false"
+          [animateRows]="false"
+          [suppressCellFocus]="true"
+          [suppressRowClickSelection]="true"
+          [domLayout]="'normal'"
+          (gridReady)="onLeftGridReady($event)"
+        >
+        </ag-grid-angular>
+      </section>
+
+      <section class="grid-section">
+        <ag-grid-angular
+          class="ag-theme-alpine epsal-popup-grid"
+          [columnDefs]="rightColumnDefs"
+          [defaultColDef]="defaultColDef"
+          [rowData]="rightRowData"
+          [rowSelection]="rowSelection"
+          [pagination]="false"
+          [animateRows]="false"
+          [suppressCellFocus]="true"
+          [suppressRowClickSelection]="true"
+          [domLayout]="'normal'"
+          (gridReady)="onRightGridReady($event)"
+        >
+        </ag-grid-angular>
+      </section>
+    </div>
+  </div>
+</div>
