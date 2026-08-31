@@ -1,0 +1,186 @@
+import { Component, Inject } from '@angular/core';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogRef
+} from '@angular/material/dialog';
+import type {
+  ColDef,
+  GridApi,
+  GridReadyEvent
+} from 'ag-grid-community';
+
+export interface AggregatedBookAccountDialogData {
+  selectedRow: EpsalRow;
+  aggregatedBookAccount: string;
+  leftRows?: AggregatedBookAccountOrderRow[];
+  rightRows?: AggregatedBookAccountResultRow[];
+}
+
+export interface EpsalRow {
+  book?: string;
+  accountingBank?: string;
+  bankTypeCode?: string;
+  bookDate?: string;
+  lastBookName?: string;
+  l2b?: string;
+}
+
+export interface AggregatedBookAccountOrderRow {
+  buySell?: string;
+  account?: string;
+  quantity?: number;
+  grossUnitPrice?: number;
+  orderType?: string;
+}
+
+export interface AggregatedBookAccountResultRow {
+  limitInCurrentPrice?: number;
+  orderAmount?: number;
+  orderSecurity?: string;
+  resultInBase?: number;
+  comment?: string;
+}
+
+@Component({
+  selector: 'app-aggregated-book-account-dialog',
+  templateUrl: './aggregated-book-account-dialog.component.html',
+  styleUrl: './aggregated-book-account-dialog.component.scss'
+})
+export class AggregatedBookAccountDialogComponent {
+  private leftGridApi?: GridApi<AggregatedBookAccountOrderRow>;
+  private rightGridApi?: GridApi<AggregatedBookAccountResultRow>;
+
+  protected readonly rowSelection = {
+    mode: 'singleRow' as const,
+    enableClickSelection: false
+  };
+
+  protected readonly defaultColDef: ColDef = {
+    sortable: true,
+    filter: true,
+    resizable: true,
+    suppressHeaderMenuButton: false
+  };
+
+  protected readonly leftColumnDefs: ColDef<AggregatedBookAccountOrderRow>[] = [
+    {
+      field: 'buySell',
+      headerName: 'Buy / Sell',
+      minWidth: 95,
+      flex: 1
+    },
+    {
+      field: 'account',
+      headerName: 'Account',
+      minWidth: 130,
+      flex: 1.2
+    },
+    {
+      field: 'quantity',
+      headerName: 'Quantity',
+      minWidth: 110,
+      flex: 1,
+      valueFormatter: params =>
+        this.formatNumber(params.value)
+    },
+    {
+      field: 'grossUnitPrice',
+      headerName: 'Gross Unit Price',
+      minWidth: 135,
+      flex: 1.2,
+      valueFormatter: params =>
+        this.formatNumber(params.value)
+    },
+    {
+      field: 'orderType',
+      headerName: 'Order Type',
+      minWidth: 110,
+      flex: 1
+    }
+  ];
+
+  protected readonly rightColumnDefs: ColDef<AggregatedBookAccountResultRow>[] = [
+    {
+      field: 'limitInCurrentPrice',
+      headerName: 'Limit in Current Price',
+      minWidth: 150,
+      flex: 1.2,
+      valueFormatter: params =>
+        this.formatNumber(params.value)
+    },
+    {
+      field: 'orderAmount',
+      headerName: 'Order Amount',
+      minWidth: 125,
+      flex: 1,
+      valueFormatter: params =>
+        this.formatNumber(params.value)
+    },
+    {
+      field: 'orderSecurity',
+      headerName: 'Order Security',
+      minWidth: 130,
+      flex: 1.1
+    },
+    {
+      field: 'resultInBase',
+      headerName: 'Result in Base',
+      minWidth: 130,
+      flex: 1,
+      cellClass: params =>
+        Number(params.value) < 0
+          ? 'epsal-negative-value'
+          : 'epsal-positive-value',
+      valueFormatter: params =>
+        this.formatNumber(params.value)
+    },
+    {
+      field: 'comment',
+      headerName: 'Comment',
+      minWidth: 120,
+      flex: 1
+    }
+  ];
+
+  protected leftRowData: AggregatedBookAccountOrderRow[] = [];
+
+  protected rightRowData: AggregatedBookAccountResultRow[] = [];
+
+  constructor(
+    private readonly dialogRef: MatDialogRef<AggregatedBookAccountDialogComponent>,
+    @Inject(MAT_DIALOG_DATA)
+    public readonly data: AggregatedBookAccountDialogData
+  ) {
+    this.leftRowData = data.leftRows ?? [];
+    this.rightRowData = data.rightRows ?? [];
+  }
+
+  onLeftGridReady(
+    event: GridReadyEvent<AggregatedBookAccountOrderRow>
+  ): void {
+    this.leftGridApi = event.api;
+    this.leftGridApi.sizeColumnsToFit();
+  }
+
+  onRightGridReady(
+    event: GridReadyEvent<AggregatedBookAccountResultRow>
+  ): void {
+    this.rightGridApi = event.api;
+    this.rightGridApi.sizeColumnsToFit();
+  }
+
+  close(): void {
+    this.dialogRef.close();
+  }
+
+  private formatNumber(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+}
