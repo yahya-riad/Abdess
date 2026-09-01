@@ -1,4 +1,4 @@
-<div class="aggregated-book-account-dialog">
+le<div class="aggregated-book-account-dialog">
   <div class="dialog-header">
     <span class="dialog-title">Aggregated Book Account</span>
 
@@ -96,3 +96,26 @@
     </div>
   </div>
 </div>
+
+
+
+<section class="header-grid-section">
+  <ag-grid-angular
+    class="ag-theme-alpine epsal-popup-grid epsal-info-grid"
+    [columnDefs]="infoColumnDefs"
+    [defaultColDef]="infoDefaultColDef"
+    [rowData]="infoRowData"
+    [headerHeight]="0"
+    [rowHeight]="42"
+    [domLayout]="'autoHeight'"
+    [suppressCellFocus]="true"
+    [suppressColumnMoveAnimation]="true"
+    [suppressMovableColumns]="true"
+    [suppressRowHoverHighlight]="true"
+    [suppressHorizontalScroll]="true"
+    [suppressNoRowsOverlay]="true"
+  >
+  </ag-grid-angular>
+</section>
+
+
