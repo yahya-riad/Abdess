@@ -1,0 +1,100 @@
+interface AggregatedBookAccountInfoRow {
+  bookLabel: string;
+  bookValue: string;
+
+  accountingBankLabel: string;
+  accountingBankValue: string;
+
+  bookTypeCodeLabel: string;
+  bookTypeCodeValue: string;
+}
+
+
+
+
+protected readonly infoDefaultColDef: ColDef<AggregatedBookAccountInfoRow> = {
+  sortable: false,
+  filter: false,
+  resizable: false,
+  suppressHeaderMenuButton: true
+};
+
+protected readonly infoColumnDefs: ColDef<AggregatedBookAccountInfoRow>[] = [
+  {
+    field: 'bookLabel',
+    width: 95,
+    cellClass: 'epsal-info-label-cell'
+  },
+  {
+    field: 'bookValue',
+    minWidth: 155,
+    flex: 1,
+    cellClass: 'epsal-info-value-cell'
+  },
+  {
+    field: 'accountingBankLabel',
+    width: 175,
+    cellClass: 'epsal-info-label-cell'
+  },
+  {
+    field: 'accountingBankValue',
+    minWidth: 230,
+    flex: 1.5,
+    cellClass: 'epsal-info-value-cell'
+  },
+  {
+    field: 'bookTypeCodeLabel',
+    width: 150,
+    cellClass: 'epsal-info-label-cell'
+  },
+  {
+    field: 'bookTypeCodeValue',
+    minWidth: 130,
+    flex: 1,
+    cellClass: 'epsal-info-value-cell'
+  }
+];
+
+protected infoRowData: AggregatedBookAccountInfoRow[] = [];
+
+
+
+
+
+constructor(
+  private readonly dialogRef: MatDialogRef<AggregatedBookAccountDialogComponent>,
+  @Inject(MAT_DIALOG_DATA)
+  public readonly data: AggregatedBookAccountDialogData
+) {
+  this.infoRowData = [
+    {
+      bookLabel: 'Book',
+      bookValue: String(data.selectedRow.book ?? '-'),
+
+      accountingBankLabel: 'ACCOUNTING BANK',
+      accountingBankValue: String(
+        data.selectedRow.accountingBank ?? '-'
+      ),
+
+      bookTypeCodeLabel: 'Book Type Code',
+      bookTypeCodeValue: String(
+        data.selectedRow.bookTypeCode ?? '-'
+      )
+    },
+    {
+      bookLabel: 'Book Date',
+      bookValue: String(data.selectedRow.bookDate ?? '-'),
+
+      accountingBankLabel: 'Last Book Name',
+      accountingBankValue: String(
+        data.selectedRow.lastBookName ?? '-'
+      ),
+
+      bookTypeCodeLabel: 'L2B',
+      bookTypeCodeValue: String(data.selectedRow.l2b ?? '-')
+    }
+  ];
+
+  this.leftRowData = data.leftRows ?? [];
+  this.rightRowData = data.rightRows ?? [];
+}
