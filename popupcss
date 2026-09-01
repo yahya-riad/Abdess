@@ -135,3 +135,49 @@
 :host ::ng-deep .epsal-popup-grid .epsal-positive-value {
   color: var(--gray-900, #212121);
 }
+
+
+
+
+
+
+.epsal-info-grid {
+  height: auto;
+
+  --ag-background-color: #ffffff;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-row-border-color: #bdbdbd;
+  --ag-border-color: #bdbdbd;
+}
+
+:host ::ng-deep .epsal-info-grid .ag-root-wrapper-header {
+  display: none;
+}
+
+:host ::ng-deep .epsal-info-grid .ag-row {
+  border-bottom: 1px solid #bdbdbd;
+}
+
+:host ::ng-deep .epsal-info-grid .ag-cell {
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #bdbdbd;
+  color: #424242;
+  font-size: 11px;
+}
+
+:host ::ng-deep .epsal-info-grid .epsal-info-label-cell {
+  justify-content: center;
+  background: #f3f3f3;
+  color: #424242;
+  font-weight: 600;
+  text-align: center;
+}
+
+:host ::ng-deep .epsal-info-grid .epsal-info-value-cell {
+  justify-content: flex-start;
+  background: #ffffff;
+  color: #212121;
+  font-weight: 400;
+}
+
