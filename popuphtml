@@ -99,23 +99,31 @@ le<div class="aggregated-book-account-dialog">
 
 
 
-<section class="header-grid-section">
-  <ag-grid-angular
-    class="ag-theme-alpine epsal-popup-grid epsal-info-grid"
-    [columnDefs]="infoColumnDefs"
-    [defaultColDef]="infoDefaultColDef"
-    [rowData]="infoRowData"
-    [headerHeight]="0"
-    [rowHeight]="42"
-    [domLayout]="'autoHeight'"
-    [suppressCellFocus]="true"
-    [suppressColumnMoveAnimation]="true"
-    [suppressMovableColumns]="true"
-    [suppressRowHoverHighlight]="true"
-    [suppressHorizontalScroll]="true"
-    [suppressNoRowsOverlay]="true"
-  >
-  </ag-grid-angular>
-</section>
+<section class="aggregated-book-account-info">
+  <table class="aggregated-book-account-info__table">
+    <tbody>
+      <tr>
+        <th>Fund</th>
+        <td>{{ getDisplayValue(data.selectedRow['fund']) }}</td>
 
+        <th>Next NAV Date</th>
+        <td>{{ getDisplayValue(data.selectedRow['nextNavDate']) }}</td>
+
+        <th>Last Price Room</th>
+        <td>{{ getDisplayValue(data.selectedRow['lastPriceRoom']) }}</td>
+      </tr>
+
+      <tr>
+        <th>ISIN</th>
+        <td>{{ getDisplayValue(data.selectedRow['isin']) }}</td>
+
+        <th>NAV</th>
+        <td>{{ getDisplayValue(data.selectedRow['nav']) }}</td>
+
+        <th>Last Price Returns</th>
+        <td>{{ getDisplayValue(data.selectedRow['lastPriceReturns']) }}</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
 
