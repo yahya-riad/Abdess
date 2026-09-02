@@ -140,44 +140,43 @@
 
 
 
-
-.epsal-info-grid {
-  height: auto;
-
-  --ag-background-color: #ffffff;
-  --ag-odd-row-background-color: #ffffff;
-  --ag-row-border-color: #bdbdbd;
-  --ag-border-color: #bdbdbd;
+.aggregated-book-account-info {
+  width: 100%;
+  margin-bottom: 26px;
+  overflow-x: auto;
 }
 
-:host ::ng-deep .epsal-info-grid .ag-root-wrapper-header {
-  display: none;
-}
-
-:host ::ng-deep .epsal-info-grid .ag-row {
-  border-bottom: 1px solid #bdbdbd;
-}
-
-:host ::ng-deep .epsal-info-grid .ag-cell {
-  display: flex;
-  align-items: center;
-  border-right: 1px solid #bdbdbd;
-  color: #424242;
+.aggregated-book-account-info__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
   font-size: 11px;
+  color: var(--gray-900, #212121);
 }
 
-:host ::ng-deep .epsal-info-grid .epsal-info-label-cell {
-  justify-content: center;
-  background: #f3f3f3;
-  color: #424242;
+.aggregated-book-account-info__table th,
+.aggregated-book-account-info__table td {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #bdbdbd;
+  vertical-align: middle;
+}
+
+.aggregated-book-account-info__table th {
+  width: 12%;
+  background-color: #e1eeeb;
+  color: var(--title-color, #00965e);
   font-weight: 600;
   text-align: center;
+  white-space: nowrap;
 }
 
-:host ::ng-deep .epsal-info-grid .epsal-info-value-cell {
-  justify-content: flex-start;
-  background: #ffffff;
-  color: #212121;
-  font-weight: 400;
+.aggregated-book-account-info__table td {
+  width: 21.33%;
+  background-color: #ffffff;
+  color: #424242;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
